@@ -9,9 +9,10 @@ import lombok.*;
 @NoArgsConstructor
 @Getter
 @Setter
-public class SingleEntityDto {
-    public String cardName;
+public class SingleEntityDTO {
 
+    public int id;
+    public String cardName;
     public int cardNumber;
 
     public String variety;
@@ -38,10 +39,11 @@ public class SingleEntityDto {
 
     String PopReportName;
 
-    public SingleEntityDto(SingleEntity s){
-        this.cardName = s.getCardName();
-        this.cardNumber = s.getCardNumber();
-        this.variety = s.getVariety();
+    public SingleEntityDTO(SingleEntity s){
+        this.id = s.getId();
+        this.cardName = s.getCard().getName();
+        this.cardNumber = s.getCard().getNumber();
+        this.variety = s.getCard().getVariety();
         this.grade1 = s.getGrade1();
         this.grade2 = s.getGrade2();
         this.grade3 = s.getGrade3();

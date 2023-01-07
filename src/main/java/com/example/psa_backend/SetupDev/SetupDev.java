@@ -1,7 +1,6 @@
 package com.example.psa_backend.SetupDev;
 
-import com.example.psa_backend.dto.PopReportDto;
-import com.example.psa_backend.entity.SingleEntity;
+import com.example.psa_backend.repository.CardRepository;
 import com.example.psa_backend.utility.Utility;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -19,15 +18,19 @@ public class SetupDev implements ApplicationRunner {
     PopReportRepository popReportRepository;
     SingleEntityRepository singleEntityRepository;
 
-    SetupDev(PopReportRepository popReportRepository, SingleEntityRepository singleEntityRepository) {
+    CardRepository cardRepository;
+
+    SetupDev(PopReportRepository popReportRepository, SingleEntityRepository singleEntityRepository, CardRepository cardRepository) {
         this.popReportRepository = popReportRepository;
         this.singleEntityRepository = singleEntityRepository;
+        this.cardRepository = cardRepository;
+
     }
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
 
-        Utility utility = new Utility(popReportRepository, singleEntityRepository);
+        Utility utility = new Utility(popReportRepository, singleEntityRepository, cardRepository);
 
         //create a pop report
         String csvFolder = "C:/Users/maste/Dropbox/Projects/PSA_BACKEND/src/main/resources/csv/";

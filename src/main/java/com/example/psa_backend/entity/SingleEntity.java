@@ -12,11 +12,8 @@ public class SingleEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    private String cardName;
-
-    private int cardNumber;
-
-    private String variety;
+    @OneToOne
+    private Card card;
 
     private int grade1;
 
@@ -41,10 +38,7 @@ public class SingleEntity {
     @ManyToOne
     private PopReport popReport;
 
-    public SingleEntity(String cardName, int cardNumber, String variety, int grade1, int grade2, int grade3, int grade4, int grade5, int grade6, int grade7, int grade8, int grade9, int grade10) {
-        this.cardName = cardName;
-        this.cardNumber = cardNumber;
-        this.variety = variety;
+    public SingleEntity(int grade1, int grade2, int grade3, int grade4, int grade5, int grade6, int grade7, int grade8, int grade9, int grade10) {
         this.grade1 = grade1;
         this.grade2 = grade2;
         this.grade3 = grade3;
@@ -57,4 +51,10 @@ public class SingleEntity {
         this.grade10 = grade10;
     }
 
+    public void setCard(Card card){
+        this.card = card;
+    }
+
 }
+
+

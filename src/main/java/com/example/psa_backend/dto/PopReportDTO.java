@@ -13,17 +13,16 @@ import java.util.List;
 @NoArgsConstructor
 @Getter
 @Setter
-public class PopReportDto{
+public class PopReportDTO {
 
     public int id;
     public String setName;
 
-    public List<SingleEntityDto> singleEntities = new ArrayList<>();
+    public List<SingleEntityDTO> singleEntities = new ArrayList<>();
 
-    public PopReportDto(PopReport p) {
+    public PopReportDTO(PopReport p) {
         this.id = p.getId();
-
         this.setName = p.getSetName();
-        this.singleEntities = p.getSingleEntities().stream().map(s -> new SingleEntityDto(s)).toList();
+        this.singleEntities = p.getSingleEntities().stream().map(s -> new SingleEntityDTO(s)).toList();
     }
 }

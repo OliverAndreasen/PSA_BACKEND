@@ -1,24 +1,35 @@
 package com.example.psa_backend.utility;
 
+import com.example.psa_backend.entity.Card;
 import com.example.psa_backend.entity.PopReport;
 import com.example.psa_backend.entity.SingleEntity;
+import com.example.psa_backend.repository.CardRepository;
 import com.example.psa_backend.repository.PopReportRepository;
 import com.example.psa_backend.repository.SingleEntityRepository;
 
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
+import java.util.*;
 
 public class Utility {
 
     PopReportRepository popReportRepository;
     SingleEntityRepository singleEntityRepository;
 
-    public Utility(PopReportRepository popReportRepository, SingleEntityRepository singleEntityRepository) {
+    CardRepository cardRepository;
+
+    public Utility(PopReportRepository popReportRepository, SingleEntityRepository singleEntityRepository, CardRepository cardRepository) {
         this.popReportRepository = popReportRepository;
         this.singleEntityRepository = singleEntityRepository;
+        this.cardRepository = cardRepository;
     }
 
 
@@ -71,7 +82,7 @@ public class Utility {
     public void saveCsvDataToDatabase(String fileName, String setName) throws FileNotFoundException {
         // Read the CSV header and store the indexes of the columns we need
         List<String> headerList = readCsvHeader(fileName);
-        int cardName = headerList.indexOf("SubjectName");
+        int cardNameIndex = headerList.indexOf("SubjectName");
         int cardNumberIndex = headerList.indexOf("CardNumber");
         int varietyIndex = headerList.indexOf("Variety");
         int grade1Index = headerList.indexOf("Grade1");
@@ -94,31 +105,89 @@ public class Utility {
         popReportRepository.save(popReport);
 
         // Create a list to store SingleEntity objects
-        List<SingleEntity> singleEntities = new ArrayList<>();
+        List<SingleEntity> singleEntityList = new ArrayList<>();
 
-        // Create SingleEntity objects from the data rows and add them to the list
         for (List<String> data : datas) {
-            SingleEntity singleEntity = new SingleEntity();
-            singleEntity.setCardName(data.get(cardName));
-            singleEntity.setCardNumber(ifEmpty(data.get(cardNumberIndex)));
-            singleEntity.setVariety(data.get(varietyIndex));
-            singleEntity.setGrade1(ifEmpty(data.get(grade1Index)));
-            singleEntity.setGrade2(ifEmpty(data.get(grade2Index)));
-            singleEntity.setGrade3(ifEmpty(data.get(grade3Index)));
-            singleEntity.setGrade4(ifEmpty(data.get(grade4Index)));
-            singleEntity.setGrade5(ifEmpty(data.get(grade5Index)));
-            singleEntity.setGrade6(ifEmpty(data.get(grade6Index)));
-            singleEntity.setGrade7(ifEmpty(data.get(grade7Index)));
-            singleEntity.setGrade8(ifEmpty(data.get(grade8Index)));
-            singleEntity.setGrade9(ifEmpty(data.get(grade9Index)));
-            singleEntity.setGrade10(ifEmpty(data.get(grade10Index)));
-            singleEntity.setPopReport(popReport);
+            // Create a Card object using the values from the SubjectName, CardNumber, and Variety columns
+            String cardName = data.get(cardNameIndex);
+            int cardNumber =  ifEmpty((data.get(cardNumberIndex)));
+            String variety = data.get(varietyIndex);
+            Card card = new Card(cardName, cardNumber, variety);
+
+            // Create a SingleEntity object using the values from the Grade1 to Grade10 columns
+            int grade1 = ifEmpty(data.get(grade1Index));
+            int grade2 = ifEmpty(data.get(grade2Index));
+            int grade3 = ifEmpty(data.get(grade3Index));
+            int grade4 = ifEmpty(data.get(grade4Index));
+            int grade5 = ifEmpty(data.get(grade5Index));
+            int grade6 = ifEmpty(data.get(grade6Index));
+            int grade7 = ifEmpty(data.get(grade7Index));
+            int grade8 = ifEmpty(data.get(grade8Index));
+            int grade9 = ifEmpty(data.get(grade9Index));
+            int grade10 = ifEmpty(data.get(grade10Index));
+
+            SingleEntity singleEntity = new SingleEntity(grade1, grade2, grade3, grade4, grade5, grade6, grade7, grade8, grade9, grade10);
+
+            // Set the SingleEntity object in the Card object
+            card.setSingleEntity(singleEntity);
+
+            // Save the Card object to the database
+            cardRepository.save(card);
+
+            // Set the Card object in the SingleEntity object
+            singleEntity.setCard(card);
 
             // Add the SingleEntity object to the list
-            singleEntities.add(singleEntity);
+            singleEntityList.add(singleEntity);
+
+            // Add the SingleEntity object to the PopReport object
+            popReport.addSingleEntity(singleEntity);
+
+            // Save the PopReport object to the database
+            popReportRepository.save(popReport);
+
+            // Add the PopReport object to the SingleEntity object
+            singleEntity.setPopReport(popReport);
         }
 
-        // Save the SingleEntity objects to the database in a single transaction
-        singleEntityRepository.saveAll(singleEntities);
+        // Save the SingleEntity objects to the database
+        singleEntityRepository.saveAll(singleEntityList);
+    }
+
+
+    public static String hashAndSaltPassword(char[] password) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        // Generate a random salt
+        SecureRandom random = new SecureRandom();
+        byte[] salt = new byte[16];
+        random.nextBytes(salt);
+
+        // Hash the password with the salt
+        PBEKeySpec spec = new PBEKeySpec(password, salt, 10000, 128);
+        SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+        SecretKey key = skf.generateSecret(spec);
+        byte[] hashedPassword = key.getEncoded();
+
+        // Encode the salt and hashed password as a string
+        return Base64.getEncoder().encodeToString(salt) + '$' + Base64.getEncoder().encodeToString(hashedPassword);
+    }
+
+
+    public static boolean verifyPassword(char[] password, String hashedPassword) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        // Extract the salt and hashed password from the string
+        String[] parts = hashedPassword.split("\\$");
+        byte[] salt = Base64.getDecoder().decode(parts[0]);
+        byte[] hash = Base64.getDecoder().decode(parts[1]);
+        // Hash the password with the salt
+        PBEKeySpec spec = new PBEKeySpec(password, salt, 10000, 128);
+        SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+        SecretKey key = skf.generateSecret(spec);
+        byte[] testHash = key.getEncoded();
+
+        // Compare the hashed password with the test hash
+        int diff = hash.length ^ testHash.length;
+        for (int i = 0; i < hash.length && i < testHash.length; i++) {
+            diff |= hash[i] ^ testHash[i];
         }
+        return diff == 0;
+    }
 }
